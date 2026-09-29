@@ -292,19 +292,43 @@ def _border_group(ob, name, dist):
     return g
 
 
+def _ease(P, ob, part, zhem):
+    """Garment ease in the rest pose: straight-leg trousers, a sweater that hangs a little."""
+    me = ob.data; me.update()
+    knee = P.J['calf_l'].z; ank = P.J['foot_l'].z
+    ch = P.J['spine_03'].z
+    for v in me.vertices:
+        z = v.co.z; n = v.normal
+        if part == 'pants':
+            d = 0.017 * sstep(knee + 0.06, ank + 0.04, z) + 0.004 * sstep(zhem - 0.25, zhem - 0.1, z) * sstep(knee + 0.1, knee + 0.25, z)
+        elif part == 'top':
+            d = 0.009 * sstep(ch, zhem + 0.05, z) * sstep(zhem - 0.02, zhem + 0.03, z)
+        else:
+            d = 0.0
+        if d:
+            v.co = v.co + n * d
+    me.update()
+
+
+def _cut(ob, part, zhem, nk):
+    """Straight hem / waistband / neckline: bisect the garment with planes."""
+    bm = bmesh.new(); bm.from_mesh(ob.data)
+    geom = bm.verts[:] + bm.edges[:] + bm.faces[:]
+    if part == 'top':
+        bmesh.ops.bisect_plane(bm, geom=geom, dist=1e-5, plane_co=(0, 0, zhem), plane_no=(0, 0, 1), clear_inner=True)
+        geom = bm.verts[:] + bm.edges[:] + bm.faces[:]
+        no = Vector((0, -0.42, 1)).normalized()
+        bmesh.ops.bisect_plane(bm, geom=geom, dist=1e-5, plane_co=(0, nk.y, nk.z + 0.006), plane_no=no, clear_outer=True)
+    elif part == 'pants':
+        bmesh.ops.bisect_plane(bm, geom=geom, dist=1e-5, plane_co=(0, 0, zhem + 0.045), plane_no=(0, 0, 1), clear_outer=True)
+    bm.to_mesh(ob.data); bm.free(); ob.data.update()
+
+
 def _finish_edges(ob, part, zhem, neck_cut, nk):
     """Snap the cut borders of a garment to smooth curves and fold them into a rolled rim."""
     bm = bmesh.new(); bm.from_mesh(ob.data)
     bnd = [e for e in bm.edges if e.is_boundary]
     bverts = {v for e in bnd for v in e.verts}
-    for v in bverts:
-        p = v.co
-        if part == 'top' and p.z > nk.z - 0.12:
-            p.z = neck_cut(p)
-        elif part == 'top' and abs(p.z - zhem) < 0.035:
-            p.z = zhem
-        elif part == 'pants' and abs(p.z - (zhem + 0.045)) < 0.03:
-            p.z = zhem + 0.045
     if part in ('top', 'pants'):
         bm.normal_update()
         ret = bmesh.ops.extrude_edge_only(bm, edges=bnd)
@@ -346,8 +370,8 @@ def _clothes(P):
         bone, foot, p = region(i)
         if foot > 0.12: socks.add(i)
         body = bone in LEG_BONES | {'pelvis', 'spine_01', 'spine_02'}
-        if body and foot < 0.5 and p.z < zhem + 0.045: pants.add(i)
-        if (bone in TOP_BONES | LEG_BONES | {'pelvis'}) and p.z > zhem and p.z < neck_cut(p): top.add(i)
+        if body and foot < 0.5 and p.z < zhem + 0.045 + 0.035: pants.add(i)
+        if (bone in TOP_BONES | LEG_BONES | {'pelvis'}) and p.z > zhem - 0.035 and p.z < neck_cut(p) + 0.04: top.add(i)
     P.clothes = []
     for part, keep, thick, mat in (
             ('top', top, 0.011, bead(P.key + '_top', sp['top'][0], speck_color=sp['top'][1], speck=0.07, bead=0.0065, var=0.14)),
@@ -358,8 +382,10 @@ def _clothes(P):
         for md in list(ob.modifiers):
             if md.type != 'ARMATURE': ob.modifiers.remove(md)
         keep_vertices(ob, keep)
+        _cut(ob, part, zhem, nk)
         _finish_edges(ob, part, zhem, neck_cut, nk)
         _skin_weights(P, ob)
+        _ease(P, ob, part, zhem)
         ob.data.materials.clear(); ob.data.materials.append(mat)
         tex = bpy.data.textures.new(P.key + '_wrinkle_' + part, 'CLOUDS'); tex.noise_scale = 0.045 if part == 'top' else 0.035
         tex.noise_depth = 1

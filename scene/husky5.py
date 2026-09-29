@@ -95,7 +95,8 @@ def _markings(me):
         # body: dark saddle on the back and upper sides
         back = _sst(-0.085, -0.01, p.y + n) * _sst(0.08, 0.15, p.z + n)
         side = _sst(0.04, 0.07, abs(p.x) + n) * _sst(0.1, 0.17, p.z + n)
-        body = max(back, side * 0.9) * _sst(0.34, 0.3, p.z)
+        cape = _sst(0.03, 0.055, abs(p.x) + n) * _sst(0.2, 0.25, p.z + n) * _sst(0.36, 0.32, p.z) * _sst(-0.1, -0.06, p.y + n)
+        body = max(back, side * 0.9, cape) * _sst(0.36, 0.31, p.z)
         # head: dark cap, stripe down the forehead, dark behind the eyes; white muzzle/cheeks
         head = 0.0
         if p.z > 0.3:
@@ -111,7 +112,7 @@ def _markings(me):
         if p.z < 0.08 and (abs(p.x) > 0.09 or p.y > 0.12):
             tail = _sst(0.035, 0.06, p.z + n)
         # neck/chest and belly white
-        chest = _sst(-0.03, -0.075, p.y + n * 0.5) * _sst(0.34, 0.2, p.z)
+        chest = _sst(-0.045, -0.085, p.y + n * 0.5) * _sst(0.34, 0.2, p.z) * _sst(0.05, 0.03, abs(p.x))
         d = max(body, head, tail) * (1 - chest)
         d = max(0.0, min(1.0, d))
         c = tuple(wh[i] * (1 - d) + (dk[i] * 0.8 + md[i] * 0.2) * d for i in range(3)) + (1.0,)
