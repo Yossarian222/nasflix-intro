@@ -11,7 +11,7 @@ ASSETS = os.environ.get('NASFLIX_ASSETS') or os.path.join(HERE, '..', 'assets')
 
 W0, W1, S, NN, H = -3.2, 3.2, -2.5, 3.2, 2.7
 CY = -1.25            # couch centre (y); the couch faces +Y (towards the TV on the north wall)
-SEAT_TOP = 0.48
+SEAT_TOP = 0.445
 
 
 def load_asset(name, pick=None):
@@ -61,13 +61,13 @@ def top_z(root):
 # ------------------------------------------------------------------------------------ pieces
 def couch(m):
     mat, mat2 = m['couch'], m['couch2']
-    rounded_box('couch_frame', (2.34, 0.96, 0.26), 0.07, mat2, loc=(0, CY, 0.2))
+    rounded_box('couch_frame', (2.34, 0.96, 0.22), 0.07, mat2, loc=(0, CY, 0.18))
     rounded_box('couch_back', (2.34, 0.26, 0.58), 0.12, mat, loc=(0, CY - 0.35, 0.6))
     for sx in (-1, 1):
         rounded_box('couch_arm', (0.27, 0.96, 0.4), 0.12, mat, loc=(sx * 1.08, CY, 0.46))
     for sx in (-0.465, 0.465):
-        cushion('seat_cush', (0.92, 0.66, 0.14), mat, loc=(sx, CY + 0.1, 0.395), puff=0.22)
-        cushion('back_cush', (0.9, 0.46, 0.17), mat, loc=(sx, CY - 0.19, 0.73), rot=(R(76), 0, 0), puff=0.3)
+        cushion('seat_cush', (0.92, 0.66, 0.14), mat, loc=(sx, CY + 0.1, 0.36), puff=0.22)
+        cushion('back_cush', (0.9, 0.46, 0.17), mat, loc=(sx, CY - 0.19, 0.7), rot=(R(76), 0, 0), puff=0.3)
     for sx in (-1.04, 1.04):
         for sy in (CY - 0.4, CY + 0.4):
             cyl('couch_leg', 0.028, 0.07, m['woodd'], loc=(sx, sy, 0.035), bevel=0.006)

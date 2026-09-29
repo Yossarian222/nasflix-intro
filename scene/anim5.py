@@ -29,47 +29,69 @@ def M(*ds):
 
 
 # ------------------------------------------------------------------ poses (armature space, character faces -Y)
-REL_L = {'upperarm_l': (0.13, 0.02, -1), 'lowerarm_l': (0.06, -0.12, -1), 'hand_l': (0.03, -0.14, -1)}
-REL_R = {'upperarm_r': (-0.13, 0.02, -1), 'lowerarm_r': (-0.06, -0.12, -1), 'hand_r': (-0.03, -0.14, -1)}
+REL_L = {'upperarm_l': (0.12, 0.03, -1), 'lowerarm_l': (0.05, -0.16, -1), 'hand_l': (0.02, -0.2, -1)}
 A_HOLD_STAND = {'upperarm_r': (-0.1, 0.06, -1), 'lowerarm_r': (-0.04, -1, 0.3), 'hand_r': (-0.02, -1, 0.25)}
+A_TOAST = {'upperarm_r': (-0.18, -0.3, -1), 'lowerarm_r': (-0.06, -1, 0.8), 'hand_r': (-0.04, -1, 0.65)}
 A_HOLD = scene5.ARMS_A_HOLD
-A_SIP = {'upperarm_r': (-0.32, -0.55, -0.45), 'lowerarm_r': (0.42, -0.35, 0.85), 'hand_r': (0.2, -0.25, 1)}
+A_REACH = {'upperarm_l': (0.32, 0.5, -1), 'lowerarm_l': (0.12, 0.4, -1), 'hand_l': (0.05, 0.25, -1)}
 A_AROUND = {'upperarm_l': (0.7, 0.35, -0.05), 'lowerarm_l': (0.55, 0.3, -0.55), 'hand_l': (0.25, 0.1, -1)}
 B_BOWL_STAND = {'upperarm_l': (0.1, -0.12, -1), 'lowerarm_l': (-0.35, -1, 0.18), 'hand_l': (-0.5, -1, 0.05),
                 'upperarm_r': (-0.1, -0.12, -1), 'lowerarm_r': (0.35, -1, 0.18), 'hand_r': (0.5, -1, 0.05)}
+B_OFFER = {'upperarm_l': (0.05, -0.35, -1), 'lowerarm_l': (-0.45, -1, 0.3), 'hand_l': (-0.55, -1, 0.15),
+           'upperarm_r': (-0.2, -0.3, -1), 'lowerarm_r': (0.2, -1, 0.35), 'hand_r': (0.4, -1, 0.2)}
 B_BOWL = scene5.ARMS_B_BOWL
-B_EAT = {'upperarm_r': (-0.3, -0.55, -0.55), 'lowerarm_r': (0.38, -0.32, 1), 'hand_r': (0.2, -0.25, 1)}
-STAND = dict(neck_01=(0, -0.08, 1), head=(0, -0.02, 1))
-MID = dict(pelvis=(0, -0.15, 1), spine_01=(0, -0.2, 1), spine_02=(0, -0.12, 1), spine_03=(0, -0.05, 1),
-           neck_01=(0, -0.12, 1), head=(0, -0.02, 1))
 SEAT = scene5.SEAT
+UP = dict(neck_01=(0, -0.08, 1), head=(0, -0.02, 1))
 
 
-def root_seat(P):
-    return scene5.seat_root(P, st)
+def turn(sp, nk, hd, tilt=0.0, nod=0.0):
+    """Upper body turned by absolute yaw angles (deg, + = to the character's left)."""
+    return dict(spine_02=((0, 0.02, 1), sp * 0.5), spine_03=((0, 0.0, 1), sp),
+                neck_01=((tilt * 0.3, -0.08 - nod * 0.3, 1), nk), head=((tilt, -0.02 - nod, 1), hd))
 
 
-def root_stand():
-    return (0, -0.5, 0.0)
+MID1 = dict(pelvis=(0, -0.35, 1), spine_01=(0, -0.3, 1), spine_02=(0, -0.25, 1), spine_03=(0, -0.18, 1),
+            neck_01=(0, -0.22, 1), head=(0, -0.06, 1))
+MID2 = dict(pelvis=(0, -0.1, 1), spine_01=(0, -0.16, 1), spine_02=(0, -0.12, 1), spine_03=(0, -0.06, 1),
+            neck_01=(0, -0.16, 1), head=(0, -0.03, 1))
+LAND = dict(pelvis=(0, 0.35, 1), spine_01=(0, 0.14, 1), spine_02=(0, 0.1, 1), spine_03=(0, 0.04, 1),
+            neck_01=(0, -0.16, 1), head=(0, -0.03, 1))
+SEAT_Z = {'a': 0.52, 'b': 0.54}          # validated with seat_check.py: no couch penetration
+SEAT_Y = {'a': -0.062, 'b': -0.143}
 
 
-def root_mid(P):
-    s = root_seat(P)
-    return (0, -0.2, s[2] * 0.55)
+def hipz(C):
+    return C.rig.data.bones['thigh_l'].head_local.z
 
 
-FEET_STAND = (0.17, -0.52, 0.08)
-FEET_SEAT = (0.15, -0.44, 0.085)
+def rt(C, kind, dx=0.0):
+    zs = SEAT_Z[C.key] - hipz(C); ys = SEAT_Y[C.key]
+    return {'stand': (0, -0.5, 0.0), 'antic': (0, -0.5, -0.03), 'mid1': (0, -0.34, -0.2),
+            'mid2': (0, min(-0.13, ys - 0.07), zs + 0.05), 'land': (0, ys, zs - 0.012), 'seat': (dx, ys, zs)}[kind]
 
 
-def P_(C, dirs, root, frame, feet, curls, post=None):
+FEET = {'stand': (0.11, -0.56, 0.08), 'a': (0.14, -0.68, 0.085), 'b': (0.13, -0.66, 0.082)}
+FEET_KEYS = {}      # character -> [(frame, (x, y, z), dx)]
+
+
+def P_(C, dirs, root, frame, curls, post=None):
     pose5.pose(C.rig, dirs, root=root, curls=curls)
-    fx, fy, fz = feet
+    ft = feet_at(C, frame)
     for side, sx in (('l', 1), ('r', -1)):
-        pose5.leg_ik(C.rig, side, Vector((sx * fx, fy, fz)), pole=Vector((0, -1, 0.45)))
-        pose5.set_dir(C.rig.pose.bones['foot_' + side], (0, -1, -0.5 if fz > 0.06 else -0.3)); upd()
+        pose5.leg_ik(C.rig, side, Vector((sx * ft[0] + ft[3], ft[1], ft[2])), pole=Vector((sx * 0.12, -1, 0.4)))
+        pose5.set_dir(C.rig.pose.bones['foot_' + side], (0, -1, -0.5)); upd()
     if post: post(C)
     pose5.key(C.rig, frame)
+
+
+def feet_at(C, f):
+    keys = FEET_KEYS[C.key]
+    if f <= keys[0][0]: k = keys[0]; return (*k[1], k[2])
+    for (f0, p0, d0), (f1, p1, d1) in zip(keys, keys[1:]):
+        if f <= f1:
+            t = (f - f0) / (f1 - f0); t = t * t * (3 - 2 * t)
+            return tuple(a + (b - a) * t for a, b in zip(p0, p1)) + (d0 + (d1 - d0) * t,)
+    k = keys[-1]; return (*k[1], k[2])
 
 
 def sip(C):
@@ -88,54 +110,82 @@ def eat(C):
 
 CA = {'r': 70, 'l': 18}
 CB = {'l': 30, 'r': 30}
+FA, FB = 100, 96            # frames where he / she starts to sit down
+FEET_KEYS['a'] = [(1, FEET['stand'], 0.0), (FA + 28, FEET['stand'], 0.0), (FA + 42, FEET['a'], 0.0)]
+FEET_KEYS['b'] = [(1, FEET['stand'], 0.0), (FB + 26, FEET['stand'], 0.0), (FB + 40, FEET['b'], 0.0),
+                  (306, FEET['b'], 0.0), (330, FEET['b'], -0.02)]
 
 # ---------------- him
 r = A.rig
-P_(A, M(STAND, REL_L, A_HOLD_STAND), root_stand(), 1, FEET_STAND, CA)
-P_(A, M(STAND, REL_L, A_HOLD_STAND, dict(neck_01=(0.08, -0.08, 1), head=(0.12, -0.02, 1))), root_stand(), 40, FEET_STAND, CA)
-P_(A, M(STAND, REL_L, A_HOLD_STAND, dict(head=(0.05, -0.04, 1))), root_stand(), 96, FEET_STAND, CA)
-P_(A, M(MID, REL_L, A_HOLD_STAND), root_mid(A), 112, ((FEET_STAND[0] + FEET_SEAT[0]) / 2, -0.48, 0.082), CA)
-P_(A, M(SEAT, A_HOLD, dict(spine_01=(0, 0.25, 1))), (0, 0.06, root_seat(A)[2] + 0.02), 126, FEET_SEAT, CA)
-P_(A, M(SEAT, A_HOLD), root_seat(A), 136, FEET_SEAT, CA)
-P_(A, M(SEAT, A_HOLD), root_seat(A), 148, FEET_SEAT, CA)
-P_(A, M(SEAT, A_HOLD, dict(neck_01=(0, -0.1, 1), head=(0, 0.1, 1))), root_seat(A), 162, FEET_SEAT, CA, post=sip)
-P_(A, M(SEAT, A_HOLD, dict(neck_01=(0, -0.08, 1), head=(0, 0.14, 1))), root_seat(A), 172, FEET_SEAT, CA, post=sip)
-P_(A, M(SEAT, A_HOLD), root_seat(A), 188, FEET_SEAT, CA)
-P_(A, M(SEAT, A_HOLD, dict(neck_01=(0.12, -0.2, 1), head=((0.16, -0.05, 1), 42))), root_seat(A), 202, FEET_SEAT, CA)
+P_(A, M(UP, REL_L, A_HOLD_STAND), rt(A, 'stand'), 1, CA)
+P_(A, M(turn(3, 6, 10), REL_L, A_HOLD_STAND), rt(A, 'stand'), 44, CA)
+P_(A, M(turn(8, 14, 24, tilt=0.03), REL_L, A_HOLD_STAND), rt(A, 'stand'), 56, CA)
+P_(A, M(turn(8, 14, 22), REL_L, A_TOAST), rt(A, 'stand'), 66, CA)
+P_(A, M(turn(8, 12, 18, nod=0.04), REL_L, A_TOAST), rt(A, 'stand'), 74, CA)
+P_(A, M(turn(4, 6, 8), REL_L, A_HOLD_STAND), rt(A, 'stand'), 86, CA)
+P_(A, M(UP, REL_L, A_HOLD_STAND, dict(neck_01=((-0.04, 0.02, 1), -10), head=((-0.06, 0.06, 1), -28))), rt(A, 'stand'), 96, CA)
+P_(A, M(UP, REL_L, A_HOLD_STAND), rt(A, 'antic'), FA, CA)
+def reach(target):
+    """His left hand reaches for the seat cushion while he sits down (planted on its surface)."""
+    def post(C):
+        rg = C.rig; inv = rg.matrix_world.inverted()
+        pose5.arm_ik(rg, 'l', inv @ Vector(target), pole=Vector((0.6, 1, 0)))
+        pose5.set_dir(rg.pose.bones['hand_l'], (0.3, -1, -0.3)); upd()
+    return post
+
+
+PLANT = (scene5.AX - 0.22, cy + 0.02, st + 0.09)
+P_(A, M(MID1, A_REACH, A_HOLD_STAND), rt(A, 'mid1'), FA + 8, CA, post=reach((scene5.AX - 0.24, cy + 0.2, st + 0.24)))
+P_(A, M(MID2, A_REACH, A_HOLD_STAND), rt(A, 'mid2'), FA + 16, CA, post=reach(PLANT))
+P_(A, M(LAND, A_HOLD, A_REACH), rt(A, 'land'), FA + 22, CA, post=reach(PLANT))
+P_(A, M(SEAT, A_HOLD), rt(A, 'seat'), FA + 32, CA)
+P_(A, M(SEAT, A_HOLD, dict(head=((0.02, -0.03, 1), 6))), rt(A, 'seat'), 146, CA)
+P_(A, M(SEAT, A_HOLD, dict(neck_01=(0, -0.1, 1), head=(0, 0.1, 1))), rt(A, 'seat'), 162, CA, post=sip)
+P_(A, M(SEAT, A_HOLD, dict(neck_01=(0, -0.08, 1), head=(0, 0.14, 1))), rt(A, 'seat'), 172, CA, post=sip)
+P_(A, M(SEAT, A_HOLD), rt(A, 'seat'), 188, CA)
+P_(A, M(SEAT, A_HOLD, dict(neck_01=(0.12, -0.2, 1), head=((0.16, -0.05, 1), 42))), rt(A, 'seat'), 202, CA)
 KA = M(SEAT, A_HOLD, dict(spine_02=(0.1, 0.22, 1), spine_03=(0.32, 0.06, 1), neck_01=(0.55, -0.12, 1)))
-P_(A, M(SEAT, A_HOLD, dict(spine_03=(0.12, 0.08, 1), neck_01=(0.25, -0.15, 1))), root_seat(A), 222, FEET_SEAT, CA)
-P_(A, KA, root_seat(A), 246, FEET_SEAT, CA)
-P_(A, KA, root_seat(A), 280, FEET_SEAT, CA)
-P_(A, M(SEAT, A_HOLD, dict(spine_03=(0.14, 0.08, 1), neck_01=(0.25, -0.15, 1))), root_seat(A), 298, FEET_SEAT, CA)
-AR = M(SEAT, A_HOLD, A_AROUND, dict(spine_03=(0.08, 0.12, 1), neck_01=(0.08, -0.18, 1), head=(0.08, -0.03, 1)))
-P_(A, AR, root_seat(A), 336, FEET_SEAT, CA)
-P_(A, M(AR, dict(head=(0.12, -0.03, 1))), root_seat(A), 392, FEET_SEAT, CA)
-P_(A, M(AR, dict(head=(0.1, -0.05, 1))), root_seat(A), 420, FEET_SEAT, CA)
+P_(A, M(SEAT, A_HOLD, dict(spine_03=(0.12, 0.08, 1), neck_01=(0.25, -0.15, 1))), rt(A, 'seat'), 222, CA)
+P_(A, KA, rt(A, 'seat'), 246, CA)
+P_(A, KA, rt(A, 'seat'), 280, CA)
+P_(A, M(SEAT, A_HOLD, dict(spine_03=(0.14, 0.08, 1), neck_01=(0.25, -0.15, 1))), rt(A, 'seat'), 298, CA)
+# (his left arm is keyed separately below: stretch, then around her shoulders - targets taken from her pose)
+AR = M(SEAT, A_HOLD, dict(spine_03=(0.04, 0.08, 1), neck_01=(0.15, -0.16, 1), head=((0.28, -0.02, 1), 12)))
+P_(A, AR, rt(A, 'seat'), 340, CA)
+P_(A, M(AR, dict(head=((0.31, -0.02, 1), 12))), rt(A, 'seat'), 392, CA)
+P_(A, M(AR, dict(head=((0.29, -0.04, 1), 10))), rt(A, 'seat'), 420, CA)
 
 # ---------------- her
 l = B.rig
-P_(B, M(STAND, B_BOWL_STAND), root_stand(), 1, FEET_STAND, CB)
-P_(B, M(STAND, B_BOWL_STAND, dict(neck_01=(-0.1, -0.08, 1), head=(-0.14, -0.02, 1))), root_stand(), 46, FEET_STAND, CB)
-P_(B, M(STAND, B_BOWL_STAND, dict(head=(-0.05, -0.03, 1))), root_stand(), 90, FEET_STAND, CB)
-P_(B, M(MID, B_BOWL_STAND), root_mid(B), 106, ((FEET_STAND[0] + FEET_SEAT[0]) / 2, -0.48, 0.082), CB)
-P_(B, M(SEAT, B_BOWL, dict(spine_01=(0, 0.25, 1))), (0, 0.06, root_seat(B)[2] + 0.02), 120, FEET_SEAT, CB)
-P_(B, M(SEAT, B_BOWL), root_seat(B), 130, FEET_SEAT, CB)
-P_(B, M(SEAT, B_BOWL), root_seat(B), 150, FEET_SEAT, CB)
-P_(B, M(SEAT, B_BOWL, dict(head=(0.02, -0.1, 1))), root_seat(B), 164, FEET_SEAT, CB, post=eat)
-P_(B, M(SEAT, B_BOWL, dict(head=(0.04, -0.12, 1))), root_seat(B), 172, FEET_SEAT, CB, post=eat)
-P_(B, M(SEAT, B_BOWL, dict(neck_01=(-0.12, -0.2, 1), head=((-0.16, -0.05, 1), -36))), root_seat(B), 192, FEET_SEAT, CB)
+P_(B, M(UP, B_BOWL_STAND), rt(B, 'stand'), 1, CB)
+P_(B, M(turn(-3, -8, -12), B_BOWL_STAND), rt(B, 'stand'), 44, CB)
+P_(B, M(turn(-8, -14, -26, tilt=-0.07), B_BOWL_STAND), rt(B, 'stand'), 54, CB)
+P_(B, M(turn(-9, -15, -24, tilt=-0.05), B_OFFER), rt(B, 'stand'), 64, CB)
+P_(B, M(turn(-7, -11, -20, tilt=-0.04, nod=0.03), B_BOWL_STAND), rt(B, 'stand'), 76, CB)
+P_(B, M(turn(-2, -4, -6), B_BOWL_STAND), rt(B, 'stand'), 86, CB)
+P_(B, M(UP, B_BOWL_STAND, dict(neck_01=((0.04, 0.02, 1), 10), head=((0.06, 0.06, 1), 26))), rt(B, 'stand'), 92, CB)
+P_(B, M(UP, B_BOWL_STAND), rt(B, 'antic'), FB, CB)
+P_(B, M(MID1, B_BOWL_STAND), rt(B, 'mid1'), FB + 8, CB)
+P_(B, M(MID2, B_BOWL_STAND), rt(B, 'mid2'), FB + 16, CB)
+P_(B, M(LAND, B_BOWL), rt(B, 'land'), FB + 22, CB)
+P_(B, M(SEAT, B_BOWL), rt(B, 'seat'), FB + 32, CB)
+P_(B, M(SEAT, B_BOWL), rt(B, 'seat'), 150, CB)
+P_(B, M(SEAT, B_BOWL, dict(head=(0.02, -0.1, 1))), rt(B, 'seat'), 164, CB, post=eat)
+P_(B, M(SEAT, B_BOWL, dict(head=(0.04, -0.12, 1))), rt(B, 'seat'), 172, CB, post=eat)
+P_(B, M(SEAT, B_BOWL, dict(neck_01=(-0.12, -0.2, 1), head=((-0.16, -0.05, 1), -36))), rt(B, 'seat'), 192, CB)
 KB = M(SEAT, B_BOWL, dict(spine_02=(-0.08, 0.2, 1), spine_03=(-0.28, 0.06, 1), neck_01=(-0.48, -0.1, 1)))
-P_(B, M(SEAT, B_BOWL, dict(spine_03=(-0.1, 0.08, 1), neck_01=(-0.2, -0.15, 1))), root_seat(B), 220, FEET_SEAT, CB)
-P_(B, KB, root_seat(B), 244, FEET_SEAT, CB)
-P_(B, KB, root_seat(B), 282, FEET_SEAT, CB)
-P_(B, M(SEAT, B_BOWL, dict(spine_03=(-0.12, 0.08, 1), neck_01=(-0.2, -0.12, 1))), root_seat(B), 300, FEET_SEAT, CB)
-HB = M(SEAT, B_BOWL, dict(spine_02=(-0.2, 0.22, 1), spine_03=(-0.44, 0.1, 1), neck_01=(-0.66, 0.02, 1), head=(-0.55, 0.08, 1)))
-P_(B, HB, root_seat(B), 346, FEET_SEAT, CB)
-P_(B, M(HB, dict(head=(-0.55, 0.05, 1))), root_seat(B), 392, FEET_SEAT, CB)
-P_(B, HB, root_seat(B), 420, FEET_SEAT, CB)
+P_(B, M(SEAT, B_BOWL, dict(spine_03=(-0.1, 0.08, 1), neck_01=(-0.2, -0.15, 1))), rt(B, 'seat'), 220, CB)
+P_(B, KB, rt(B, 'seat'), 244, CB)
+P_(B, KB, rt(B, 'seat'), 282, CB)
+P_(B, M(SEAT, B_BOWL, dict(spine_03=(-0.12, 0.08, 1), neck_01=(-0.2, -0.12, 1))), rt(B, 'seat'), 306, CB)
+HB = M(SEAT, B_BOWL, dict(spine_02=(-0.1, 0.22, 1), spine_03=((-0.22, 0.1, 1), -6), neck_01=(-0.5, 0.0, 1),
+                          head=((-0.5, 0.06, 1), -10)))
+P_(B, HB, rt(B, 'seat', dx=-0.02), 342, CB)
+P_(B, M(HB, dict(head=((-0.54, 0.05, 1), -10))), rt(B, 'seat', dx=-0.02), 392, CB)
+P_(B, HB, rt(B, 'seat', dx=-0.02), 420, CB)
 
 
-# ---------------- kiss: aim the heads at each other on top of the base poses
+# ---------------- kiss: aim the heads on top of the base poses
 def kiss_heads(f, amount):
     sc.frame_set(f)
     fwd = Vector((0, 1, 0))                      # both face +Y (towards the TV / camera)
@@ -150,8 +200,101 @@ def kiss_heads(f, amount):
         rg.pose.bones['head'].keyframe_insert('rotation_quaternion', frame=f)
 for f, a in ((222, 0.35), (246, 1.0), (280, 1.0), (298, 0.25)):
     kiss_heads(f, a)
+
+
+# ---------------- the snuggle: he stretches, then lays his left arm around her shoulders
+def arm_keys(f, ua_d, la_d, hd_d, world=False):
+    sc.frame_set(f)
+    ainv = r.matrix_world.inverted()
+    ua, la, hd = (r.pose.bones[n] for n in ('upperarm_l', 'lowerarm_l', 'hand_l'))
+    if world:          # ua_d = elbow target, la_d = wrist target, hd_d = hand direction (all world space)
+        pose5.set_dir(ua, (ainv @ ua_d) - ua.head); upd()
+        pose5.set_dir(la, (ainv @ la_d) - la.head); upd()
+        pose5.set_dir(hd, ainv.to_3x3() @ Vector(hd_d)); upd()
+    else:              # plain directions in armature space
+        for pb, d in ((ua, ua_d), (la, la_d), (hd, hd_d)):
+            pose5.set_dir(pb, d); upd()
+    for pb in (ua, la, hd):
+        pb.keyframe_insert('rotation_quaternion', frame=f)
+
+
+def around(f, eoff, woff, hand):
+    sc.frame_set(f)
+    e = l.matrix_world @ l.pose.bones['neck_01'].head + Vector(eoff)       # elbow behind her neck
+    w = l.matrix_world @ l.pose.bones['upperarm_l'].head + Vector(woff)    # wrist on her far shoulder
+    arm_keys(f, e, w, hand, world=True)
+
+
+arm_keys(306, (0.22, -0.95, 0.12), (0.18, -0.55, 0.85), (0.1, -0.3, 1))       # lifts the arm forward...
+arm_keys(314, (0.3, -0.12, 1), (0.22, 0.18, 1), (0.15, 0.3, 1))               # ...stretches it up...
+around(326, (0.03, -0.2, 0.2), (-0.06, -0.09, 0.2), (-0.3, 0.2, -0.6))        # ...over her head...
+for f in (340, 392, 420):                                                       # ...and around her shoulders
+    around(f, (0.03, -0.16, 0.06), (-0.087, -0.063, 0.061), (-0.35, 0.45, -1))
 for C in (A, B):
     pose5.smooth(C.rig)
+
+
+# ---------------- bake: breathing, weight shift, small head motion; feet re-solved on every frame
+from mathutils import noise as mnoise
+
+
+def _rot(pb, axis, deg):
+    ax = (pb.bone.matrix_local.to_3x3().inverted() @ Vector(axis)).normalized()
+    pb.rotation_quaternion = pb.rotation_quaternion @ Quaternion(ax, math.radians(deg))
+
+
+def bake(C, sit_frame, seed):
+    rg = C.rig; pbs = rg.pose.bones
+    names = [pb.name for pb in pbs]
+    bq = {n: [] for n in names}; broot = []
+    for f in range(1, END + 1):
+        sc.frame_set(f)
+        for pb in pbs: bq[pb.name].append(pb.rotation_quaternion.copy())
+        broot.append(pbs['Root'].location.copy())
+    rg.animation_data_clear()
+    Rinv = pbs['Root'].bone.matrix_local.to_3x3().inverted()
+    for i, f in enumerate(range(1, END + 1)):
+        for n in names: pbs[n].rotation_quaternion = bq[n][i]
+        t = f / FPS
+        standing = 1.0 - max(0.0, min(1.0, (f - sit_frame) / 10.0))
+        # weight shift while standing
+        w = math.sin(2 * math.pi * t / 5.2 + seed)
+        pbs['Root'].location = broot[i] + Rinv @ Vector((0.013 * w * standing, 0, -0.004 * abs(w) * standing))
+        _rot(pbs['pelvis'], (0, 1, 0), 1.8 * w * standing)
+        _rot(pbs['spine_02'], (0, 1, 0), -1.1 * w * standing)
+        # breathing
+        per = 3.3 if standing > 0.5 else 4.1
+        b = math.sin(2 * math.pi * t / per + seed * 0.7)
+        _rot(pbs['spine_02'], (1, 0, 0), -0.5 * b); _rot(pbs['spine_03'], (1, 0, 0), -1.0 * b)
+        _rot(pbs['neck_01'], (1, 0, 0), 0.7 * b)
+        _rot(pbs['clavicle_l'], (0, 1, 0), -1.0 * b); _rot(pbs['clavicle_r'], (0, 1, 0), 1.0 * b)
+        # small living head motion (less during the kiss)
+        k = 0.35 if 222 <= f <= 298 else 1.0
+        n1 = mnoise.noise(Vector((t * 0.55, seed, 0.3))); n2 = mnoise.noise(Vector((t * 0.5, seed + 4.1, 1.7)))
+        _rot(pbs['head'], (0, 0, 1), 2.2 * n1 * k); _rot(pbs['head'], (1, 0, 0), 1.4 * n2 * k)
+        _rot(pbs['neck_01'], (0, 0, 1), 0.8 * n1 * k)
+        upd()
+        ft = feet_at(C, f)
+        for side, sx in (('l', 1), ('r', -1)):
+            pose5.leg_ik(rg, side, Vector((sx * ft[0] + ft[3], ft[1], ft[2])), pole=Vector((sx * 0.12, -1, 0.4)))
+            pose5.set_dir(pbs['foot_' + side], (0, -1, -0.5))
+        upd()
+        for pb in pbs: pb.keyframe_insert('rotation_quaternion', frame=f)
+        pbs['Root'].keyframe_insert('location', frame=f)
+    for fc in rg.animation_data.action.fcurves:
+        for kp in fc.keyframe_points: kp.interpolation = 'LINEAR'
+
+
+_muted = []
+for ob in bpy.data.objects:
+    for md in ob.modifiers:
+        if md.show_viewport:
+            md.show_viewport = False; _muted.append(md)
+bake(A, FA, 0.0); bake(B, FB, 1.9)
+for md in _muted: md.show_viewport = True
+
+# ---------------- cushions give way when they sit down
+scene5.cushion_dents(A, B, info, ((FA + 16, FA + 26), (FB + 16, FB + 26)))
 
 
 # ---------------- faces: gaze, blinks, smiles, closed eyes, blush
@@ -178,13 +321,15 @@ def eyes_closed(C, f0, f1):
 ha0 = r.matrix_world @ r.pose.bones['head'].head
 hb0 = l.matrix_world @ l.pose.bones['head'].head
 look(A, 1, Vector((0.3, 0.5, 1.4))); look(B, 1, Vector((-0.2, 0.6, 1.3)))
-look(A, 36, hb0 + Vector((0, 0.1, 0))); look(B, 42, ha0 + Vector((0, 0.1, 0)))      # glance at each other
-look(A, 70, Vector((0.2, 0.8, 0.6))); look(B, 76, Vector((-0.2, 0.8, 0.6)))
+look(A, 46, hb0 + Vector((0, 0.1, 0))); look(B, 44, ha0 + Vector((0, 0.1, 0)))      # talking to each other
+look(A, 80, hb0 + Vector((0, 0.1, -0.1))); look(B, 78, ha0 + Vector((0, 0.1, -0.05)))
+look(A, 96, Vector((0.6, cy - 0.3, 0.5))); look(B, 92, Vector((-0.6, cy - 0.3, 0.5)))    # glance at the couch
+look(A, 112, Vector((0.2, 0.8, 0.8))); look(B, 108, Vector((-0.2, 0.8, 0.8)))
 look(A, 140, TV); look(B, 136, TV)
 look(A, 196, Vector((-0.4, cy + 0.1, 1.15))); look(B, 190, Vector((0.4, cy + 0.1, 1.2)))
 look(A, 300, TV); look(B, 300, TV); look(A, 420, TV); look(B, 420, TV)
-for f in (28, 118, 188, 330, 396): blink(A, f)
-for f in (20, 100, 178, 360, 406): blink(B, f)
+for f in (28, 62, 118, 188, 330, 396): blink(A, f)
+for f in (20, 58, 100, 178, 360, 406): blink(B, f)
 for C in (A, B): eyes_closed(C, 250, 282)
 for C, base, kiss in ((A, 0.35, 0.65), (B, 0.8, 1.0)):
     for f, v in ((1, base), (200, base), (230, kiss), (300, kiss), (340, base + 0.1), (420, base + 0.1)):
@@ -212,7 +357,7 @@ for f in range(1, END + 1):
     knees = (bw_ @ l.pose.bones['thigh_l'].tail + bw_ @ l.pose.bones['thigh_r'].tail) / 2
     lap = hips.lerp(knees, 0.5) + Vector((0, 0, 0.065))
     held = (hl + hr) / 2 + Vector((0, 0, -0.055))
-    seated = max(0.0, min(1.0, (f - 108) / 16.0))
+    seated = max(0.0, min(1.0, (f - (FB + 16)) / 12.0))
     eating = 1.0 if 152 <= f <= 186 else 0.0
     if eating:
         held = hl + Vector((0.06, 0, -0.05))

@@ -204,16 +204,17 @@ def _fur_nodes(mat, target, density=420000.0, length=(0.005, 0.0095), radius=0.0
     return ng
 
 
-def _fur_object(target, mat, parent, **kw):
+def _fur_object(target, mat, parent, mul=1.0, **kw):
     cv = bpy.data.hair_curves.new(target.name + '_fur')
     fo = bpy.data.objects.new(target.name + '_fur', cv); link(fo)
     cv.materials.append(mat)
-    gn = fo.modifiers.new('fur', 'NODES'); gn.node_group = _fur_nodes(mat, target, **kw)
+    L = kw.pop('length', (0.005, 0.0095)); Rr = kw.pop('radius', 0.00032)
+    gn = fo.modifiers.new('fur', 'NODES'); gn.node_group = _fur_nodes(mat, target, length=(L[0] * mul, L[1] * mul), radius=Rr * mul, **kw)
     fo.parent = parent
     return fo
 
 
-def make_husky(loc=(0, 0, 0), rotz=0.0, scale=1.0):
+def make_husky(loc=(0, 0, 0), rotz=0.0, scale=1.0, fur_mul=1.0):
     mbo, mb = _metaballs()
     bpy.context.view_layer.update()
     dg = bpy.context.evaluated_depsgraph_get()
@@ -226,7 +227,7 @@ def make_husky(loc=(0, 0, 0), rotz=0.0, scale=1.0):
     me.materials.append(skin)
     root = bpy.data.objects.new('husky_root', None); link(root)
     body.parent = root
-    _fur_object(body, fur, root)
+    _fur_object(body, fur, root, mul=fur_mul)
     # ears (fur as well)
     for sx in (1, -1):
         e = _ear('husky_ear_%s' % ('l' if sx > 0 else 'r'), sx, skin)
@@ -240,7 +241,7 @@ def make_husky(loc=(0, 0, 0), rotz=0.0, scale=1.0):
         ea.attributes['furcol'].data.foreach_set('color', [x for t in vals for x in t])
         ea.attributes['furmask'].data.foreach_set('value', [1.0] * len(ea.vertices))
         e.parent = root
-        _fur_object(e, fur, e, length=(0.005, 0.008))
+        _fur_object(e, fur, e, mul=fur_mul, length=(0.005, 0.008))
     # eyes (light blue, glossy) and nose
     from mathutils.bvhtree import BVHTree
     bvh = BVHTree.FromPolygons([v.co.copy() for v in me.vertices], [list(p.vertices) for p in me.polygons])

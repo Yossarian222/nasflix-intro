@@ -97,16 +97,16 @@ jobs:
           python3 tools/draft_fetch.py "$REL" --prefix frames- intro_quad.json
           mkdir -p all && for t in frames-*.tar; do tar xf "$t" -C all; done
           ls all | wc -l
-      - name: Encode (HEVC + H.264, 24 fps)
+      - name: Encode (HEVC + H.264, 24 fps, video only - the soundtrack is added later)
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null
           STEP=$(python3 -c "s='${{ inputs.frames }}'; print(s.partition(':')[2] or 1)")
           FPS=$(python3 -c "print(24/$STEP)")
           VF="scale=1920:1080:flags=lanczos,noise=alls=2:allf=t,vignette=PI/5,fps=24,format=yuv420p"
-          ffmpeg -y -framerate $FPS -pattern_type glob -i 'all/f_*.jpg' -i audio/intro4.wav -vf "$VF" \
-            -c:v libx265 -preset slow -crf 20 -tag:v hvc1 -c:a aac -b:a 160k -shortest nasflix_intro_hevc.mp4
-          ffmpeg -y -framerate $FPS -pattern_type glob -i 'all/f_*.jpg' -i audio/intro4.wav -vf "$VF" \
-            -c:v libx264 -preset slow -crf 19 -profile:v high -c:a aac -b:a 160k -shortest -movflags +faststart nasflix_intro_h264.mp4
+          ffmpeg -y -framerate $FPS -pattern_type glob -i 'all/f_*.jpg' -vf "$VF" -an \
+            -c:v libx265 -preset slow -crf 20 -tag:v hvc1 nasflix_intro_hevc.mp4
+          ffmpeg -y -framerate $FPS -pattern_type glob -i 'all/f_*.jpg' -vf "$VF" -an \
+            -c:v libx264 -preset slow -crf 19 -profile:v high -movflags +faststart nasflix_intro_h264.mp4
           ls -la *.mp4
       - name: Upload videos to the draft release
         env:
