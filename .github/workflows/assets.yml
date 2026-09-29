@@ -1,0 +1,40 @@
+name: Assets
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "catalog | polyhaven"
+        default: catalog
+      ids:
+        description: "Poly Haven model ids (comma separated)"
+        default: ""
+      res:
+        description: "Texture resolution (1k/2k)"
+        default: "1k"
+      tag:
+        description: "Name of the asset bundle"
+        default: "props"
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download
+        run: |
+          mkdir -p dl
+          if [ "${{ inputs.mode }}" = "catalog" ]; then
+            python3 tools/polyhaven_fetch.py catalog dl/catalog
+          else
+            python3 tools/polyhaven_fetch.py ids "${{ inputs.ids }}" "${{ inputs.res }}" dl/${{ inputs.tag }}
+          fi
+          tar czf bundle-${{ inputs.tag }}-${{ inputs.mode }}.tgz -C dl .
+          ls -la *.tgz
+      - name: Upload to draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tools/draft_upload.py assets bundle-${{ inputs.tag }}-${{ inputs.mode }}.tgz
