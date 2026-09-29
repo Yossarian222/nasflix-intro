@@ -1,4 +1,6 @@
-out/
+scene/out/
+scene/__pycache__/
+assets/
 frames/
-*.blend1
-__pycache__/
+*.tgz
+*.tar
