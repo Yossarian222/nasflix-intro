@@ -320,15 +320,16 @@ c2 = cam('Cam2', [(S2, (0.2, 1.55, 1.34), (0, cy + 0.2, 1.1)), (100, (0.2, 1.45,
          [(S2, (0, cy + 0.5, 1.3)), (100, (0, cy + 0.45, 1.25)), (136, (0, cy + 0.06, 1.05)), (S3 - 1, (0, cy + 0.06, 1.02))])
 c3 = cam('Cam3', [(S3, (mid.x - 0.02, cy + 1.45, 1.26), mid + Vector((0, 0, 0.0))), (S4 - 1, (mid.x - 0.06, cy + 1.25, 1.28), mid + Vector((0, 0, 0.02)))],
          55, 0.9, [(S3, mid + Vector((0, 0.1, 0))), (S4 - 1, mid + Vector((0, 0.1, 0.02)))])
-FINAL = ((0.05, cy - 1.12, 1.66), (0, NN, TVZ - 0.42))
+FINAL = ((0.05, cy - 1.05, 1.66), (0, NN, TVZ - 0.42))
 crane = []
 for i, f in enumerate(range(S4, S5 + 1, 3)):
     tt = (f - S4) / (S5 - S4); e = tt * tt * (3 - 2 * tt)
     ang = R(8) + e * R(172)                       # in front -> over the heads -> behind
-    rad = 1.3
-    pos = Vector((0.12 * (1 - e) + 0.05 * e + 0.3 * math.sin(math.pi * e), cy + math.cos(ang) * rad, 1.3 + 0.55 * math.sin(math.pi * e) + (1.66 - 1.3) * e))
-    k = max(0.0, min(1.0, (e - 0.55) / 0.45)); k = k * k * (3 - 2 * k)
-    look_t = mid.lerp(Vector((0, NN, TVZ - 0.42)), k)
+    rad = 1.3 if math.cos(ang) > 0 else 1.05
+    pos = Vector((0.12 * (1 - e) + 0.05 * e + 0.28 * math.sin(math.pi * e), cy + math.cos(ang) * rad,
+                  1.3 + 0.42 * math.sin(math.pi * e) + (1.66 - 1.3) * e))
+    k = max(0.0, min(1.0, (e - 0.62) / 0.38)); k = k * k * (3 - 2 * k)
+    look_t = (mid + Vector((0, 0.05, 0.02))).lerp(Vector((0, NN, TVZ - 0.42)), k)
     crane.append((f, tuple(pos), tuple(look_t)))
 crane[-1] = (S5, FINAL[0], FINAL[1])
 c4 = cam('Cam4', crane, 30, 1.2, [(S4, mid + Vector((0, 0.1, 0))), (S4 + 30, mid), (S5, (0, NN, TVZ))])
